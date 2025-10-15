@@ -1,7 +1,5 @@
-
 let container = document.getElementById("canvas-container");
 
-// Cena e câmara
 let scene = new THREE.Scene();
 scene.background = new THREE.Color(0xa8d9ff);
 
@@ -13,7 +11,6 @@ renderer.setSize(container.clientWidth, container.clientHeight);
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
 
-// Luz
 let hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
 hemi.position.set(0,200,0);
 scene.add(hemi);
@@ -21,20 +18,15 @@ scene.add(hemi);
 let sun = new THREE.DirectionalLight(0xffffff, 1.2);
 sun.position.set(-300,-300,400);
 sun.castShadow = true;
-sun.shadow.mapSize.width = 2048;
-sun.shadow.mapSize.height = 2048;
 scene.add(sun);
 
-// Controles
 let controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.target.set(0,0,50);
 controls.update();
 
-// Grupo da cidade
 let cityGroup = new THREE.Group();
 scene.add(cityGroup);
 
-// ===== Funções para prédios e casas =====
 function addTower(x,y,w,d,h){
     let geom = new THREE.BoxGeometry(w,d,h);
     let mat = new THREE.MeshStandardMaterial({color:0x808080});
@@ -43,7 +35,8 @@ function addTower(x,y,w,d,h){
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     cityGroup.add(mesh);
-    // Janelas iluminadas
+
+    // Janelas
     let windowMat = new THREE.MeshStandardMaterial({color:0xffffaa, emissive:0xffffaa, emissiveIntensity:0.5});
     for(let i=0;i<Math.floor(h/5);i++){
         let win = new THREE.BoxGeometry(w-2,d-2,1);
@@ -61,7 +54,7 @@ function addHouse(x,y,w,d,h){
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     cityGroup.add(mesh);
-    // Telhado
+
     let roof = new THREE.ConeGeometry(Math.max(w,d)/1.2, h*0.6, 4);
     let rmesh = new THREE.Mesh(roof, new THREE.MeshStandardMaterial({color:0x6b3b2b}));
     rmesh.rotation.z = Math.PI/4;
@@ -70,7 +63,7 @@ function addHouse(x,y,w,d,h){
     cityGroup.add(rmesh);
 }
 
-// ===== Cidade urbana + turística =====
+// Gerar cidade
 let cols = 12, rows = 10;
 let cityW = 350, cityH = 250;
 for(let i=0;i<cols;i++){
@@ -113,7 +106,6 @@ for(let i=-150;i<150;i+=20){
     addTree(i, cityH/2 + 20);
 }
 
-// Animar cena
 function animate(){
     requestAnimationFrame(animate);
     renderer.render(scene,camera);
