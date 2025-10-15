@@ -1,51 +1,115 @@
 import streamlit as st
-import plotly.graph_objects as go
-import random
 
 st.set_page_config(page_title="Smart City 3D", layout="wide")
 
-st.title("🏙️ Smart City Turística Inteligente")
-st.write("Simulação 3D de uma cidade sustentável com edifícios, áreas verdes e painéis solares ☀️")
+st.title("🏙️ Smart City Turística Inteligente (3D)")
+st.markdown("""
+Explore a maquete digital de uma cidade urbana + turística inteligente.
+Use o rato para girar e scroll para aproximar. Desenvolvido por **Batolomeu 👷‍♂️**.
+""")
 
-# Parâmetros da cidade
-num_predios = st.slider("Número de edifícios", 10, 100, 30)
-max_altura = st.slider("Altura máxima dos edifícios", 20, 200, 80)
+# Código HTML + Three.js para gerar a cidade
+html_code = """
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<title>Smart City 3D</title>
+<style>
+html, body { margin:0; height:100%; overflow:hidden; }
+#canvas-container { width:100%; height:800px; display:block; }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<script src="https://unpkg.com/three@0.156.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.156.0/examples/js/controls/OrbitControls.js"></script>
 
-# Gerar prédios
-x, y, z, dx, dy, dz, cores = [], [], [], [], [], [], []
-for _ in range(num_predios):
-    x.append(random.randint(0, 100))
-    y.append(random.randint(0, 100))
-    z.append(0)
-    dx.append(random.randint(4, 10))
-    dy.append(random.randint(4, 10))
-    dz.append(random.randint(10, max_altura))
-    cores.append(random.choice(["#1E90FF", "#00BFFF", "#228B22", "#FFD700", "#FF8C00"]))
+<script>
+// ===== Setup básico =====
+let scene = new THREE.Scene();
+scene.background = new THREE.Color(0xa8d9ff);
 
-# Plot 3D
-fig = go.Figure()
+let camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 2000);
+camera.position.set(0, -180, 120);
 
-# Edifícios
-for i in range(num_predios):
-    fig.add_trace(go.Mesh3d(
-        x=[x[i], x[i]+dx[i], x[i]+dx[i], x[i], x[i], x[i]+dx[i], x[i]+dx[i], x[i]],
-        y=[y[i], y[i], y[i]+dy[i], y[i]+dy[i], y[i], y[i], y[i]+dy[i], y[i]+dy[i]],
-        z=[z[i], z[i], z[i], z[i], z[i]+dz[i], z[i]+dz[i], z[i]+dz[i], z[i]+dz[i]],
-        color=cores[i], opacity=0.9, flatshading=True,
-        showscale=False
-    ))
+let renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, 800);
+document.getElementById("canvas-container").appendChild(renderer.domElement);
 
-# Ajustes de visualização
-fig.update_layout(
-    scene=dict(
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False),
-        zaxis=dict(visible=False),
-        aspectratio=dict(x=1, y=1, z=0.5)
-    ),
-    margin=dict(l=0, r=0, b=0, t=0)
-)
+// Luz
+let hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
+hemi.position.set(0,200,0);
+scene.add(hemi);
 
-st.plotly_chart(fig, use_container_width=True)
+let sun = new THREE.DirectionalLight(0xffffff, 1.2);
+sun.position.set(-100,-100,200);
+sun.castShadow = true;
+scene.add(sun);
 
-st.success("🌆 Modelo de cidade turística inteligente gerado com sucesso!")
+// Controles
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0,0,20);
+controls.update();
+
+// Grupo da cidade
+let cityGroup = new THREE.Group();
+scene.add(cityGroup);
+
+// ===== Funções =====
+function addTower(x,y,w,d,h){
+    let geom = new THREE.BoxGeometry(w,d,h);
+    let mat = new THREE.MeshStandardMaterial({color:0x808080});
+    let mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(x,y,h/2);
+    cityGroup.add(mesh);
+}
+
+function addHouse(x,y,w,d,h){
+    let geom = new THREE.BoxGeometry(w,d,h);
+    let mat = new THREE.MeshStandardMaterial({color:0xf2e6d6});
+    let mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(x,y,h/2);
+    cityGroup.add(mesh);
+    // Telhado
+    let roof = new THREE.ConeGeometry(Math.max(w,d)/1.2, h*0.5, 4);
+    let rmesh = new THREE.Mesh(roof, new THREE.MeshStandardMaterial({color:0x6b3b2b}));
+    rmesh.rotation.z = Math.PI/4;
+    rmesh.position.set(x,y,h + h*0.25);
+    cityGroup.add(rmesh);
+}
+
+// ===== Gerar cidade =====
+let cols = 10, rows = 8;
+let cityW = 300, cityH = 200;
+for(let i=0;i<cols;i++){
+    for(let j=0;j<rows;j++){
+        let x = i*30 - cityW/2;
+        let y = j*25 - cityH/2;
+        if(Math.random()<0.3){
+            addHouse(x,y,12,12,10 + Math.random()*10);
+        } else {
+            addTower(x,y,15,15,20 + Math.random()*40);
+        }
+    }
+}
+
+// ===== Praia + promenade =====
+let seaGeo = new THREE.PlaneGeometry(cityW, 50);
+let seaMat = new THREE.MeshStandardMaterial({color:0x2f70d6});
+let sea = new THREE.Mesh(seaGeo, seaMat);
+sea.rotation.x = -Math.PI/2;
+sea.position.set(0, cityH/2 + 25, 0);
+scene.add(sea);
+
+function animate(){
+    requestAnimationFrame(animate);
+    renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
+"""
+
+st.components.v1.html(html_code, height=800, scrolling=False)
